@@ -1,0 +1,115 @@
+# Copyright 2019 Richard Downer
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Backend data stores for the Amiga Freeware Archive
+
+Parameters:
+  Stage:
+    Description: Name of the stage, such as "live" or "dev"
+    Type: String
+    Default: live
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  EnableSearch:
+    Description: Enable or disable the Elasticsearch service
+    Type: String
+    AllowedValues: [ Enabled, Disabled ]
+    Default: Enabled
+
+Conditions:
+  ElasticsearchEnabled: !Equals [ !Ref EnableSearch, 'Enabled' ]
+
+Resources:
+
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join
+        - '-'
+        - - 'amiga-freeware-archive'
+          - 'artifacts'
+          - !Ref Stage
+          - !Ref AWS::AccountId
+          - !Ref AWS::Region
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+
+  MetadataBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join
+        - '-'
+        - - 'amiga-freeware-archive'
+          - 'metadata'
+          - !Ref Stage
+          - !Ref AWS::AccountId
+          - !Ref AWS::Region
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+
+  SamBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join
+        - '-'
+        - - 'amiga-freeware-archive'
+          - 'sam'
+          - !Ref Stage
+          - !Ref AWS::AccountId
+          - !Ref AWS::Region
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+
+  Elasticsearch:
+    Type: AWS::Elasticsearch::Domain
+    Condition: ElasticsearchEnabled
+    Properties:
+      DomainName: !Join
+        - '-'
+        - - 'amiga-freeware-archive'
+          - !Ref Stage
+      ElasticsearchVersion: 6.3
+      ElasticsearchClusterConfig:
+        DedicatedMasterEnabled: false
+        InstanceCount: 1
+        InstanceType: t2.small.elasticsearch
+        ZoneAwarenessEnabled: false
+      EBSOptions:
+        EBSEnabled: true
+        Iops: 0
+        VolumeSize: 20
+        VolumeType: "gp2"
+      SnapshotOptions:
+        AutomatedSnapshotStartHour: "0"
+      AccessPolicies:
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: Allow
+            Principal:
+              AWS: '*'
+            Action: es:*
+            Resource: !Sub "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/amiga-freeware-archive-${Stage}/*"
+            Condition:
+              IpAddress:
+                "aws:SourceIp": 87.246.78.46

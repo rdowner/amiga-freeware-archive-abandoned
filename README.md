@@ -31,6 +31,8 @@ In this repository
 
 [Web frontend](web) for browsing and searching the archive.
 
-[AWS SAM application](backend-app) for the backend services, including full CloudFormation setup
+[AWS SAM application](backend-app) for the backend services.
+
+[CloudFormation](cloudformation) for AWS resources not specifically part of the backend app, such as the data storage.
 
 [Import tooling](import-tools) for importing artifacts and metadata into the archive.
