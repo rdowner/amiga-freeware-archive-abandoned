@@ -18,3 +18,11 @@ Import tools - Amiga Freeware Archive
 =====================================
 
 Placeholder
+
+
+Setup
+-----
+
+pip install --user pipenv
+pipenv install
+pipenv run python -m pytest

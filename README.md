@@ -35,4 +35,4 @@ In this repository
 
 [CloudFormation](cloudformation) for AWS resources not specifically part of the backend app, such as the data storage.
 
-[Import tooling](import-tools) for importing artifacts and metadata into the archive.
+[Import tooling](afa_import) for importing artifacts and metadata into the archive.

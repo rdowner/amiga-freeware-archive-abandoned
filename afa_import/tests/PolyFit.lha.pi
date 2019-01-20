@@ -1,0 +1,45 @@
+# This file contains product information that can be used by
+# KingFisher 2.0 and other similar tools.
+
+.name
+PolyFit
+.type
+Graphing
+.short
+"Method of least squares" line fitting
+.description
+A program to fit straight lines, polynomes and exponentional curves to sets
+of points.  Can fit to polynomes of degree of 16 and lower.  Calculated
+coefficients can be printed and saved.  A graph of the points and curve can
+be shown (in any screen resolution), printed and saved as an IFF file.
+Supports localization.  Binary only.
+.version
+1.21
+.date
+1994.02.05
+.author
+Camiel Rouweler
+.requirements
+Requires OS 2.0+
+.distribution
+Freeware
+.address
+Weldam 2
+5655 JG Eindhoven
+Netherlands
+.docs
+READMEFIRST
+PolyFit.guide
+.described-by
+Fred Fish (fnf@fishpond.cygnus.com)
+.submittal
+Submitted on disk directly by the author.
+.contents
+PolyFit		A program to fit straight lines, polynomes and exponentional
+		curves to sets of points.  Can fit to polynomes of degree of
+		16 and lower.  Calculated coefficients can be printed and saved.
+		A graph of the points and curve can be shown (in any screen
+		resolution), printed and saved as an IFF file.  Supports
+		localization.  Version 1.21, OS2.0 and higher, freeware,
+		binary only.
+		Author: Camiel Rouweler
