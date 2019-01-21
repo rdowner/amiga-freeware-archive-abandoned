@@ -1,0 +1,15 @@
+# This file contains product information that can be used by
+# KingFisher 2.0 and other similar tools.
+
+.name
+Disk980-Overhead
+.fullname
+Disk 980 overhead files
+.type
+Miscellaneous
+.short
+Library admin files for disk 980.
+.description
+Library admin files for disk 980.
+.described-by
+Fred Fish (fnf@fishpond.cygnus.com)

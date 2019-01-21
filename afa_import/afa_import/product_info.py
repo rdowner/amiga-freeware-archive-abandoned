@@ -27,12 +27,17 @@ class ProductInfo:
         # Split into list of records, with each record being a list of strings
         q = []
         w = []
+        line_no = len(lines)
         while len(lines) > 0:
             tail = lines.pop()
-            q.insert(0, tail)
-            if tail[0] == '.':
-                w.insert(0, q)
-                q = []
+            try:
+                q.insert(0, tail)
+                if len(tail) > 0 and tail[0] == '.':
+                    w.insert(0, q)
+                    q = []
+                line_no -= 1
+            except:
+                raise Exception('Error parsing {} {} line {}: {}'.format(disknumber, filename, line_no, tail))
         
         # Convert that list into a dict    
         r = {
