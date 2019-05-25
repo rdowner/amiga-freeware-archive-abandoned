@@ -1,0 +1,6 @@
+{
+    "python.testing.unittestEnabled": false,
+    "python.testing.pyTestEnabled": true,
+    "python.testing.nosetestsEnabled": false,
+    "python.pythonPath": "C:\\Users\\Richard\\.virtualenvs\\afa_import-jeAoGGuL\\Scripts\\python.exe",
+}
