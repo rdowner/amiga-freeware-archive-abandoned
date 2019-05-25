@@ -21,7 +21,7 @@ class ProductInfo:
 
         lines = input.splitlines()
         # Drop everything before the `.name` record
-        while len(lines) > 0 and lines[0] != ".name":
+        while len(lines) > 0 and lines[0].rstrip() != ".name":
             del lines[0]
         
         # Split into list of records, with each record being a list of strings
@@ -29,7 +29,7 @@ class ProductInfo:
         w = []
         line_no = len(lines)
         while len(lines) > 0:
-            tail = lines.pop()
+            tail = lines.pop().rstrip()
             try:
                 q.insert(0, tail)
                 if len(tail) > 0 and tail[0] == '.':
@@ -41,6 +41,7 @@ class ProductInfo:
         
         # Convert that list into a dict    
         r = {
+            'artifact_id': 'libraries/fish/disks/{}/artifacts/{}'.format(disknumber, filename),
             'filename': filename,
             'disknumber': disknumber,
             'content-type': 'application/x-lha'

@@ -13,9 +13,21 @@
 # limitations under the License.
 
 import os.path
+import re
 from afa_import.product_info import ProductInfo
 
 class FishDisk:
+
+    @classmethod
+    def frompath(cls, path):
+        if os.sep == '\\':
+            p = re.compile(r'(.*\\)?d(\d{3,4})')
+        else:
+            p = re.compile(r'(.*' + os.sep + r')?d(\d{3,4})')
+        m = p.match(path)
+        if m == None:
+            raise Exception('Unable to extract disk number from path: ' + path)
+        return FishDisk(int(m.group(2)), path)
 
     def __init__(self, disknumber, path):
         "Initialise FishDisk by scanning a directory of .pi files"
@@ -35,6 +47,9 @@ class FishDisk:
         if overhead != None:
             self.artifacts.append(overhead)
     
+    def metadata_s3_key(self):
+        return 'libraries/fish/disks/{}.json'.format(self.disknumber)
+
     def generate_metadata(self):
         metadata = {
             "volume_id": 'libraries/fish/disks/{}'.format(self.disknumber),
@@ -45,3 +60,11 @@ class FishDisk:
             "artifacts": self.artifacts
         }
         return metadata
+    
+    def to_dict(self):
+        d = {}
+        metadata = self.generate_metadata()
+        for k in ('volume_id', 'volume_number', 'name', 'alternative_name', 'description'):
+            d[k] = metadata[k]
+        d['artifacts'] = list(map(lambda i: i.records, metadata['artifacts']))
+        return d

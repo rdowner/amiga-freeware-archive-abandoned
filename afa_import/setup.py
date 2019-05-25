@@ -35,4 +35,12 @@ setuptools.setup(
         "Operating System :: OS Independent",
         "Programming Language :: Python :: 3",
     ],
+    entry_points={
+        'console_scripts': [
+            'afa_import = afa_import.main:main'
+        ],
+        'afa_import': [
+            'goldfish = afa_import.goldfish:GoldFish'
+        ]
+    }
 )

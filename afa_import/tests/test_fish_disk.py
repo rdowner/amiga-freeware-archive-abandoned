@@ -46,3 +46,17 @@ def test_fish_disk_generate_metadata():
     assert artifact.records['name'] == 'HWGRCS'
     artifact = fishdisk.artifacts[2]
     assert artifact.records['name'] == 'Disk980-Overhead'
+
+def test_fish_disk_infer_disk_number():
+    "Tests that the disk number can be correctly inferred from the pathname"
+
+    fishdisk = FishDisk.frompath(os.path.join(os.path.dirname(__file__), 'd980'))
+    metadata = fishdisk.generate_metadata()
+    assert metadata['volume_id'] == 'libraries/fish/disks/980'
+    assert metadata['volume_number'] == 980
+
+def test_fish_disk_s3_metadata_key():
+    "Tests the the metadata is placed in the correct location in the S3 metadata bucket"
+
+    fishdisk = FishDisk.frompath(os.path.join(os.path.dirname(__file__), 'd980'))
+    assert fishdisk.metadata_s3_key() == 'libraries/fish/disks/980.json'
