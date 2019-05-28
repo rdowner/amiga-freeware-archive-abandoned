@@ -13,32 +13,73 @@ Globals:
 
 Resources:
 
-    HelloWorldFunction:
-        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
-        Properties:
-            CodeUri: hello-world/
-            Handler: app.lambdaHandler
-            Runtime: nodejs8.10
-            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
-                Variables:
-                    PARAM1: VALUE
-            Events:
-                HelloWorld:
-                    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
-                    Properties:
-                        Path: /hello
-                        Method: get
+  APIGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: AFASAM
+      StageName: prod
+      DefinitionBody:
+        swagger: '2.0'
+        info:
+          version: '1.0'
+          title: !Ref AWS::StackName
+        paths:
+          "/libraries/{library}/disks/{disk}":
+            get:
+              produces:
+              - application/json
+              parameters:
+              - name: disk
+                in: path
+                required: true
+                type: string
+              - name: library
+                in: path
+                required: true
+                type: string
+              responses:
+                '200':
+                  description: 200 response
+              x-amazon-apigateway-integration:
+                credentials: arn:aws:iam::170417557564:role/APIGatewayS3Access
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:amiga-freeware-archive-metadata-live-170417557564-us-east-2.s3:path/libraries/{library}/disks/{disk}.json
+                responses:
+                  default:
+                    statusCode: '200'
+                requestParameters:
+                  integration.request.path.disk: method.request.path.disk
+                  integration.request.path.library: method.request.path.library
+                passthroughBehavior: when_no_match
+                httpMethod: GET
+                type: aws
+          "/sample":
+            get:
+              responses: {}
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BackEndFunction.Arn}/invocations
+                passthroughBehavior: when_no_match
+                httpMethod: POST
+                type: aws_proxy
+
+  BackEndFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: backend-app/
+      Handler: service.handler
+      Runtime: python3.7
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          PARAM1: VALUE
+      Events:
+        Sample:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            RestApiId: !Ref APIGateway
+            Path: /sample
+            Method: get
 
 Outputs:
 
-    HelloWorldApi:
+    APIEndpoint:
       Description: "API Gateway endpoint URL for Prod stage for Hello World function"
-      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
-
-    HelloWorldFunction:
-      Description: "Hello World Lambda Function ARN"
-      Value: !GetAtt HelloWorldFunction.Arn
-
-    HelloWorldFunctionIamRole:
-      Description: "Implicit IAM Role created for Hello World function"
-      Value: !GetAtt HelloWorldFunctionRole.Arn
+      Value: !Sub "https://${APIGateway}.execute-api.${AWS::Region}.amazonaws.com/prod/"

@@ -1,0 +1,472 @@
+# Copyright 2019 Richard Downer
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Core IAM resources for the Amiga Freeware Archive
+
+Parameters:
+  CostAllocationGroup:
+    Description: Tag for allocating resources to cost groups
+    Type: String
+    Default: AmigaFreewareArchive
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  CostAllocationAspect:
+    Description: Tag for allocating resources to cost groups
+    Type: String
+    Default: live
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  GitHubRepoOwner:
+    Description: Owner name of the source code repository
+    Type: String
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  GitHubRepoName:
+    Description: Name of the source code repository
+    Type: String
+    Default: amiga-freeware-archive
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  GitHubToken:
+    Description: Token that can be used to authenticate access to the source code repository
+    Type: String
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  S3KMSKeyArn:
+    Description: ARN of the KMS key that is used to encrypt objects in the S3 buckets
+    Type: String
+    Default: arn:aws:kms:${AWS::Region}:ACCOUNT:alias/aws/s3
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+
+Resources:
+
+  # RESOURCES FOR SAM
+
+  SamBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Suspended
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: !Ref S3KMSKeyArn
+
+
+  # STAGE: BUILD
+
+  PolicyForCodeBuildRole:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Path: /amiga-freeware-archive/
+      Description: Policy that permits CloudFormation the permissions necessary to manage the AWS SAM app in CodePipeline
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+            Resource: "*"
+          - Effect: Allow
+            Action: codecommit:GitPull
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+            Resource: "*"
+          - Effect: Allow
+            Action: s3:PutObject
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - ec2:DescribeDhcpOptions
+              - ec2:DescribeNetworkInterfaces
+              - ec2:DescribeSubnets
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeVpcs
+            Resource: "*"
+
+  CodeBuildRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Path: /amiga-freeware-archive/
+      ManagedPolicyArns:
+        - !Ref PolicyForCodeBuildRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: codebuild.amazonaws.com
+          Action: sts:AssumeRole
+
+  CodeBuild:
+    Type: AWS::CodeBuild::Project
+    Properties: 
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Cache:
+        Type: NO_CACHE
+      EncryptionKey: !Ref S3KMSKeyArn
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: S3_BUCKET
+            Type: PLAINTEXT
+            Value: !Ref SamBucket
+          - Name: S3_BUCKET_KMS_KEY
+            Type: PLAINTEXT
+            Value: !Ref S3KMSKeyArn
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/standard:2.0
+      Source:
+        Type: CODEPIPELINE
+
+  # DEPLOY - requires permissions for CloudFormation to do stuff
+
+  PolicyForCloudFormationRole:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Path: /amiga-freeware-archive/
+      Description: Policy that permits CloudFormation the permissions necessary to manage the AWS SAM app
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Action:
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:GetBucketVersioning
+          Resource: "*"
+          Effect: Allow
+        - Action: s3:PutObject
+          Resource: arn:aws:s3:::codepipeline*
+          Effect: Allow
+        - Action: lambda:*
+          Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*
+          Effect: Allow
+        - Action: apigateway:*
+          Resource: !Sub arn:aws:apigateway:${AWS::Region}::*
+          Effect: Allow
+        - Action:
+          - iam:GetRole
+          - iam:CreateRole
+          - iam:DeleteRole
+          - iam:PutRolePolicy
+          Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/*
+          Effect: Allow
+        - Action:
+          - iam:AttachRolePolicy
+          - iam:DeleteRolePolicy
+          - iam:DetachRolePolicy
+          Resource: !Sub arn:aws:iam::${AWS::AccountId}:role/*
+          Effect: Allow
+        - Action: iam:PassRole
+          Resource: "*"
+          Effect: Allow
+        - Action: cloudformation:CreateChangeSet
+          Resource: !Sub arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31
+          Effect: Allow
+        - Action:
+          - codedeploy:CreateApplication
+          - codedeploy:DeleteApplication
+          - codedeploy:RegisterApplicationRevision
+          Resource: !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:application:*
+          Effect: Allow
+        - Action:
+          - codedeploy:CreateDeploymentGroup
+          - codedeploy:CreateDeployment
+          - codedeploy:GetDeployment
+          Resource: !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentgroup:*
+          Effect: Allow
+        - Action: codedeploy:GetDeploymentConfig
+          Resource: !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:*
+          Effect: Allow
+
+  CloudFormationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /amiga-freeware-archive/
+      ManagedPolicyArns:
+        - !Ref PolicyForCloudFormationRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: cloudformation.amazonaws.com
+          Action: sts:AssumeRole
+
+  # PIPELINE
+
+  KMSPolicyForCodePipelineRole:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Path: /amiga-freeware-archive/
+      Description: Policy that permits CodePipeline to access the KMS key for objects in the artifact bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:GenerateDataKey
+            Resource: !Ref S3KMSKeyArn
+
+  PolicyForCodePipelineRole:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Path: /amiga-freeware-archive/
+      Description: Policy that permits CodePipeline the permissions necessary to manage the AWS SAM app
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: iam:PassRole
+            Resource: "*"
+            Effect: Allow
+            Condition:
+              StringEqualsIfExists:
+                iam:PassedToService:
+                - cloudformation.amazonaws.com
+                - elasticbeanstalk.amazonaws.com
+                - ec2.amazonaws.com
+                - ecs-tasks.amazonaws.com
+          - Action:
+            - codecommit:CancelUploadArchive
+            - codecommit:GetBranch
+            - codecommit:GetCommit
+            - codecommit:GetUploadArchiveStatus
+            - codecommit:UploadArchive
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - codedeploy:CreateDeployment
+            - codedeploy:GetApplication
+            - codedeploy:GetApplicationRevision
+            - codedeploy:GetDeployment
+            - codedeploy:GetDeploymentConfig
+            - codedeploy:RegisterApplicationRevision
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - elasticbeanstalk:*
+            - ec2:*
+            - elasticloadbalancing:*
+            - autoscaling:*
+            - cloudwatch:*
+            - s3:*
+            - sns:*
+            - cloudformation:*
+            - rds:*
+            - sqs:*
+            - ecs:*
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - lambda:InvokeFunction
+            - lambda:ListFunctions
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - opsworks:CreateDeployment
+            - opsworks:DescribeApps
+            - opsworks:DescribeCommands
+            - opsworks:DescribeDeployments
+            - opsworks:DescribeInstances
+            - opsworks:DescribeStacks
+            - opsworks:UpdateApp
+            - opsworks:UpdateStack
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - cloudformation:CreateStack
+            - cloudformation:DeleteStack
+            - cloudformation:DescribeStacks
+            - cloudformation:UpdateStack
+            - cloudformation:CreateChangeSet
+            - cloudformation:DeleteChangeSet
+            - cloudformation:DescribeChangeSet
+            - cloudformation:ExecuteChangeSet
+            - cloudformation:SetStackPolicy
+            - cloudformation:ValidateTemplate
+            Resource: "*"
+            Effect: Allow
+          - Action:
+            - codebuild:BatchGetBuilds
+            - codebuild:StartBuild
+            Resource: "*"
+            Effect: Allow
+          - Effect: Allow
+            Action:
+            - devicefarm:ListProjects
+            - devicefarm:ListDevicePools
+            - devicefarm:GetRun
+            - devicefarm:GetUpload
+            - devicefarm:CreateUpload
+            - devicefarm:ScheduleRun
+            Resource: "*"
+          - Effect: Allow
+            Action:
+            - servicecatalog:ListProvisioningArtifacts
+            - servicecatalog:CreateProvisioningArtifact
+            - servicecatalog:DescribeProvisioningArtifact
+            - servicecatalog:DeleteProvisioningArtifact
+            - servicecatalog:UpdateProduct
+            Resource: "*"
+          - Effect: Allow
+            Action: cloudformation:ValidateTemplate
+            Resource: "*"
+          - Effect: Allow
+            Action: ecr:DescribeImages
+            Resource: "*"
+
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /amiga-freeware-archive/
+      ManagedPolicyArns:
+        - !Ref PolicyForCodePipelineRole
+        - !Ref KMSPolicyForCodePipelineRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Effect: Allow
+          Principal:
+            Service: codepipeline.amazonaws.com
+          Action: sts:AssumeRole
+
+  PipelineS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      VersioningConfiguration:
+        Status: Suspended
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: 'aws:kms'
+              KMSMasterKeyID: !Ref S3KMSKeyArn
+
+  Pipeline: 
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref PipelineS3Bucket
+        EncryptionKey:
+          Type: KMS
+          Id: !Ref S3KMSKeyArn
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Owner: ThirdParty
+                Category: Source
+                Provider: GitHub
+                Version: 1
+              OutputArtifacts:
+                - Name: SourceArtifact
+              Configuration:
+                Owner: !Ref GitHubRepoOwner
+                Repo: !Ref GitHubRepoName
+                Branch: master
+                OAuthToken: !Ref GitHubToken
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: BuildAction
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: BuildArtifact
+              ActionTypeId:
+                Owner: AWS
+                Category: Build
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref CodeBuild
+              RunOrder: 1
+            - Name: MakeChangeSet
+              InputArtifacts:
+                - Name: BuildArtifact
+              OutputArtifacts: []
+              ActionTypeId:
+                Owner: AWS
+                Category: Deploy
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: AFASAM
+                Capabilities: CAPABILITY_IAM
+                ChangeSetName: AFASAMCS
+                TemplatePath: BuildArtifact::backend-app/packaged.yaml
+                RoleArn: !GetAtt CloudFormationRole.Arn
+              RunOrder: 2
+        - Name: Review
+          Actions:
+            - Name: ApproveDeployment
+              InputArtifacts: []
+              OutputArtifacts: []
+              ActionTypeId:
+                Owner: AWS
+                Category: Approval
+                Provider: Manual
+                Version: 1
+              Configuration: {}
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: DeployChangeSet
+              InputArtifacts: []
+              OutputArtifacts: []
+              ActionTypeId:
+                Owner: AWS
+                Category: Deploy
+                Provider: CloudFormation
+                Version: 1
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: AFASAM
+                Capabilities: CAPABILITY_IAM
+                ChangeSetName: AFASAMCS
+                TemplatePath: BuildArtifact::backend-app/packaged.yaml
+                RoleArn: !GetAtt CloudFormationRole.Arn
+              RunOrder: 1
+
+  PipelineWebhook:
+    Type: AWS::CodePipeline::Webhook
+    Properties:
+      AuthenticationConfiguration:
+        SecretToken: !Ref GitHubToken
+      Filters:
+        - JsonPath: "$.ref"
+          MatchEquals: refs/heads/{Branch}
+      Authentication: GITHUB_HMAC
+      TargetPipeline: !Ref Pipeline
+      TargetAction: SourceAction
+      Name: AFAGitHubWebhook
+      TargetPipelineVersion: !GetAtt Pipeline.Version
+      RegisterWithThirdParty: 'true'

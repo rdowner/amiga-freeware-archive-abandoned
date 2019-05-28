@@ -17,11 +17,18 @@
 version: 0.2
 phases:
   install:
+    runtime-versions:
+      python: 3.7
     commands:
-      - sudo pip install --upgrade awscli boto3 botocore
-      - sudo pip install aws-sam-cli
+      - pip install aws-sam-cli
+#      - sudo pip install --upgrade awscli boto3 botocore
+#      - sudo pip install aws-sam-cli
   build:
     commands:
+#      - python -m site --user-base
+#      - find "$(python -m site --user-base)"
+#      - export PATH="$(python -m site --user-base):$PATH"
+#      - echo "$PATH"
       - cd backend-app
       - sam build
   post_build:

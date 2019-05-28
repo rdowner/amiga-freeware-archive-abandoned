@@ -107,9 +107,53 @@ Resources:
         Statement: 
           - Effect: Allow
             Principal:
-              AWS: '*'
+              AWS: !Ref DatastoreManagerRole
             Action: es:*
             Resource: !Sub "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/amiga-freeware-archive-${Stage}/*"
-            Condition:
-              IpAddress:
-                "aws:SourceIp": 87.246.78.46
+
+  DatastoreManagerPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Join
+        - '-'
+        - - 'AmigaFreewareArchive'
+          - 'DatastoreManager'
+          - !Ref Stage
+          - !Ref AWS::AccountId
+          - !Ref AWS::Region
+      Description: Allows the datastore manager full access to the S3 buckets and ElasticSearch instance
+      Path: /amiga-freeware-archive/
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: s3:*
+            Resource:
+              - !Sub 'arn:aws:s3:::${ArtifactBucket}'
+              - !Sub 'arn:aws:s3:::${ArtifactBucket}/*'
+              - !Sub 'arn:aws:s3:::${MetadataBucket}'
+              - !Sub 'arn:aws:s3:::${MetadataBucket}/*'
+          - Effect: Allow
+            Action: s3:ListBuckets
+            Resource: '*'
+          - !If
+              - ElasticsearchEnabled
+              - Effect: Allow
+                Action: es:*
+                Resource:
+                  !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/amiga-freeware-archive-${Stage}'
+              - !Ref AWS::NoValue
+
+  DatastoreManagerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /amiga-freeware-archive/
+      ManagedPolicyArns:
+        - !Ref DatastoreManagerPolicy
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+          Action: sts:AssumeRole
