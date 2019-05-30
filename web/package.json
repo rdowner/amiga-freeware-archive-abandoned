@@ -9,6 +9,7 @@
     "parcel-serve": "parcel public/index.html"
   },
   "dependencies": {
+    "axios": "^0.18.0",
     "core-js": "^2.6.5",
     "vue": "^2.6.10"
   },
