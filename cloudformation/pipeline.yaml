@@ -22,12 +22,15 @@ Parameters:
     Default: AmigaFreewareArchive
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
-  CostAllocationAspect:
-    Description: Tag for allocating resources to cost groups
+  Stage:
+    Description: Name of the stage, such as "live" or "dev"
     Type: String
     Default: live
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
+  WebsiteHostName:
+    Type: String
+    Description: DNS name of the website
   GitHubRepoOwner:
     Description: Owner name of the source code repository
     Type: String
@@ -50,6 +53,11 @@ Parameters:
     Default: arn:aws:kms:${AWS::Region}:ACCOUNT:alias/aws/s3
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
+  AcmCertificateArn:
+    Description: ARN of the ACM certificate that is used for TLS encryption on the web app distribution
+    Type: String
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
 
 Resources:
 
@@ -67,6 +75,70 @@ Resources:
               SSEAlgorithm: 'aws:kms'
               KMSMasterKeyID: !Ref S3KMSKeyArn
 
+  # WEB APP
+
+  WebAppBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Join
+      - '-'
+      - - 'amiga-freeware-archive'
+        - 'webapp'
+        - !Ref Stage
+        - !Ref AWS::AccountId
+        - !Ref AWS::Region
+      AccessControl: Private
+
+  CloudFrontOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub "Identity to access S3 bucket ${WebAppBucket}"
+
+  WebAppBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebAppBucket
+      PolicyDocument:
+        Statement:
+        - Action: [ "s3:GetObject" ]
+          Effect: Allow
+          Resource: !Sub "arn:aws:s3:::${WebAppBucket}/*"
+          Principal:
+            AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      Tags:
+      - { Key: CostAllocationGroup, Value: !Ref CostAllocationGroup }
+      - { Key: CostAllocationAspect, Value: !Ref Stage }
+      DistributionConfig:
+        Comment: !Sub "${WebsiteHostName} in S3 bucket ${WebAppBucket}"
+        Aliases: [ !Ref WebsiteHostName ]
+        DefaultCacheBehavior:
+          Compress: true
+          DefaultTTL: 604800  # CloudFront caches items for 7 days unless HTTP headers in the response say otherwise
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            Headers: [ ]
+            QueryString: false
+          TargetOriginId: MainOrigin
+          ViewerProtocolPolicy: redirect-to-https
+        Enabled: true
+        HttpVersion: http2
+        IPV6Enabled: true
+        # Logging: FIXME: do this later
+        Origins:
+        - Id: MainOrigin
+          DomainName: !Sub "${WebAppBucket}.s3.amazonaws.com"
+          S3OriginConfig:
+            OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+        ViewerCertificate:
+          AcmCertificateArn: !Ref AcmCertificateArn
+          MinimumProtocolVersion: TLSv1.1_2016
+          SslSupportMethod: sni-only
 
   # STAGE: BUILD
 
@@ -118,27 +190,54 @@ Resources:
             Service: codebuild.amazonaws.com
           Action: sts:AssumeRole
 
-  CodeBuild:
+  CloudFormationCodeBuild:
     Type: AWS::CodeBuild::Project
-    Properties: 
+    Properties:
       ServiceRole: !GetAtt CodeBuildRole.Arn
-      Artifacts:
-        Type: CODEPIPELINE
       Cache:
         Type: NO_CACHE
       EncryptionKey: !Ref S3KMSKeyArn
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
         EnvironmentVariables:
-          - Name: S3_BUCKET
-            Type: PLAINTEXT
-            Value: !Ref SamBucket
-          - Name: S3_BUCKET_KMS_KEY
-            Type: PLAINTEXT
-            Value: !Ref S3KMSKeyArn
+        - Name: S3_BUCKET
+          Type: PLAINTEXT
+          Value: !Ref SamBucket
+        - Name: S3_BUCKET_KMS_KEY
+          Type: PLAINTEXT
+          Value: !Ref S3KMSKeyArn
         Type: LINUX_CONTAINER
         Image: aws/codebuild/standard:2.0
       Source:
+        Type: CODEPIPELINE
+        BuildSpec: backend-app/buildspec.yml
+      Artifacts:
+        ArtifactIdentifier: CloudFormation
+        Type: CODEPIPELINE
+
+  WebAppCodeBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Cache:
+        Type: NO_CACHE
+      EncryptionKey: !Ref S3KMSKeyArn
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+        - Name: S3_BUCKET
+          Type: PLAINTEXT
+          Value: !Ref SamBucket
+        - Name: S3_BUCKET_KMS_KEY
+          Type: PLAINTEXT
+          Value: !Ref S3KMSKeyArn
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/standard:2.0
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: web/buildspec.yml
+      Artifacts:
+        ArtifactIdentifier: WebApp
         Type: CODEPIPELINE
 
   # DEPLOY - requires permissions for CloudFormation to do stuff
@@ -395,22 +494,22 @@ Resources:
               RunOrder: 1
         - Name: Build
           Actions:
-            - Name: BuildAction
+            - Name: BuildCloudFormationAction
               InputArtifacts:
                 - Name: SourceArtifact
               OutputArtifacts:
-                - Name: BuildArtifact
+                - Name: CloudFormationArtifact
               ActionTypeId:
                 Owner: AWS
                 Category: Build
                 Provider: CodeBuild
                 Version: 1
               Configuration:
-                ProjectName: !Ref CodeBuild
+                ProjectName: !Ref CloudFormationCodeBuild
               RunOrder: 1
             - Name: MakeChangeSet
               InputArtifacts:
-                - Name: BuildArtifact
+                - Name: CloudFormationArtifact
               OutputArtifacts: []
               ActionTypeId:
                 Owner: AWS
@@ -422,9 +521,22 @@ Resources:
                 StackName: AFASAM
                 Capabilities: CAPABILITY_IAM
                 ChangeSetName: AFASAMCS
-                TemplatePath: BuildArtifact::backend-app/packaged.yaml
+                TemplatePath: CloudFormationArtifact::backend-app/packaged.yaml
                 RoleArn: !GetAtt CloudFormationRole.Arn
               RunOrder: 2
+            - Name: BuildWebAppAction
+              InputArtifacts:
+              - Name: SourceArtifact
+              OutputArtifacts:
+              - Name: WebAppArtifact
+              ActionTypeId:
+                Owner: AWS
+                Category: Build
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref WebAppCodeBuild
+              RunOrder: 1
         - Name: Review
           Actions:
             - Name: ApproveDeployment
@@ -452,9 +564,21 @@ Resources:
                 StackName: AFASAM
                 Capabilities: CAPABILITY_IAM
                 ChangeSetName: AFASAMCS
-                TemplatePath: BuildArtifact::backend-app/packaged.yaml
+                TemplatePath: CloudFormationArtifact::backend-app/packaged.yaml
                 RoleArn: !GetAtt CloudFormationRole.Arn
               RunOrder: 1
+            - Name: DeployWebApp
+              InputArtifacts:
+                - Name: WebAppArtifact
+              OutputArtifacts: []
+              ActionTypeId:
+                Owner: AWS
+                Category: Deploy
+                Provider: S3
+                Version: 1
+              Configuration:
+                BucketName: !Ref WebAppBucket
+                Extract: true
 
   PipelineWebhook:
     Type: AWS::CodePipeline::Webhook
@@ -470,3 +594,11 @@ Resources:
       Name: AFAGitHubWebhook
       TargetPipelineVersion: !GetAtt Pipeline.Version
       RegisterWithThirdParty: 'true'
+
+Outputs:
+  CloudFrontDistributionId:
+    Value: !Ref CloudFrontDistribution
+  CloudFrontURL:
+    Value: !GetAtt CloudFrontDistribution.DomainName
+  CloudFrontHostedZone:
+    Value: "Z2FDTNDATAQYW2"
