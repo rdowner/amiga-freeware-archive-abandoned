@@ -1,30 +1,14 @@
 <template>
     <div id="app">
         <img alt="Vue logo" src="./assets/logo.png">
-        <DiskInfo v-bind:disk="diskdetail"></DiskInfo>
+        <router-view></router-view>
+        <router-link to="/">Go to home page</router-link>
     </div>
 </template>
 
 <script>
-    import DiskInfo from './components/DiskInfo.vue'
-    import axios from 'axios'
-
     export default {
-        name: 'app',
-        components: {
-            DiskInfo
-        },
-        data: function(){
-            return {
-                diskdetail: {}
-            };
-        },
-        created: function(){
-            axios.get('/libraries/fish/disks/573')
-                .then(response => {
-                    this.diskdetail = response.data;
-                });
-        }
+        name: 'app'
     }
 </script>
 
