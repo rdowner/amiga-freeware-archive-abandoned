@@ -40,7 +40,8 @@ setuptools.setup(
             'afa_import = afa_import.main:main'
         ],
         'afa_import': [
-            'goldfish = afa_import.goldfish:GoldFish'
+            'goldfish = afa_import.goldfish:GoldFish',
+            'search = afa_import.search:Search'
         ]
     }
 )

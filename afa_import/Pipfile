@@ -24,6 +24,10 @@ pylint = "*"
 [packages]
 cliff = "*"
 boto3 = "*"
+elasticsearch = "<7.0.0,>=6.0.0"
+requests = "*"
+requests-aws4auth = "*"
+afa-import = {editable = true,path = "."}
 
 [requires]
 python_version = "3.7"
