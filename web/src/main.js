@@ -1,12 +1,14 @@
 import axios from 'axios'
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import BootstrapVue from 'bootstrap-vue'
 import App from './App.vue'
 import HomePage from './components/HomePage.vue'
 import DiskPage from './components/DiskPage.vue'
 
 Vue.config.productionTip = false;
 Vue.use(VueRouter);
+Vue.use(BootstrapVue);
 
 axios.defaults.baseURL = 'https://w1rz82fujb.execute-api.us-east-2.amazonaws.com/prod';
 

@@ -1,8 +1,13 @@
 <template>
-    <div id="app">
-        <img alt="Vue logo" src="./assets/logo.png">
-        <router-view></router-view>
-        <router-link to="/">Go to home page</router-link>
+    <div id="app" class="container">
+        <div class="container">
+            <h1 id="header">
+                <img id="amigalogo" alt="AMIGA" src="./assets/Amiga-Logo-1985.svg">
+                Freeware Archive
+            </h1>
+            <router-view></router-view>
+            <router-link class="btn btn-primary" to="/">Go to home page</router-link>
+        </div>
     </div>
 </template>
 
@@ -12,12 +17,18 @@
     }
 </script>
 
-<style>
+<style lang="scss">
+    @import 'assets/_custom.scss';
+    @import '~bootstrap/scss/bootstrap.scss';
+    @import '~bootstrap-vue/src/index.scss';
+
     #app {
-        font-family: 'Avenir', Helvetica, Arial, sans-serif;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        color: #2c3e50;
-        margin-top: 60px;
+    }
+
+    #amigalogo {
+        height: 1em;
+    }
+    #header {
+        border-bottom: black solid thin;
     }
 </style>

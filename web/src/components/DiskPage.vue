@@ -1,6 +1,5 @@
 <template>
     <div>
-        <h1>Here's a disk.</h1>
         <DiskInfo v-bind:disk="diskdetail"></DiskInfo>
     </div>
 </template>
