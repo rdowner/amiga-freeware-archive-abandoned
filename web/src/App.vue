@@ -1,12 +1,13 @@
 <template>
     <div id="app" class="container">
         <div class="container">
-            <h1 id="header">
-                <img id="amigalogo" alt="AMIGA" src="./assets/Amiga-Logo-1985.svg">
-                Freeware Archive
-            </h1>
+            <router-link to="/" class="unlink">
+                <h1 id="header">
+                    <img id="amigalogo" alt="AMIGA" src="./assets/Amiga-Logo-1985.svg">
+                    Freeware Archive
+                </h1>
+            </router-link>
             <router-view></router-view>
-            <router-link class="btn btn-primary" to="/">Go to home page</router-link>
         </div>
     </div>
 </template>
@@ -30,5 +31,13 @@
     }
     #header {
         border-bottom: black solid thin;
+    }
+    a.unlink {
+        color: inherit;
+        text-decoration: inherit;
+    }
+    a.unlink:hover {
+        color: inherit;
+        text-decoration: inherit;
     }
 </style>
