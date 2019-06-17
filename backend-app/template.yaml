@@ -18,6 +18,27 @@ Resources:
     Properties:
       Name: AFASAM
       StageName: prod
+      Cors:
+        # Optional. String containing the HTTP methods to allow.
+        # For example, "'GET,POST,DELETE'". If you omit this property, then SAM will automatically allow all the methods configured for each API.
+        # Checkout [HTTP Spec](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Methods) more details on the value.
+        #AllowMethods: GET,OPTIONS
+
+        # Optional. String of headers to allow.
+        # For example, "'X-Forwarded-For'". Checkout [HTTP Spec](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Headers) for more details on the value
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+
+        # Required. String of origin to allow.
+        # For example, "'www.example.com'". Checkout [HTTP Spec](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin) for more details on this value.
+        AllowOrigin: "'*'"
+
+        # Optional. String containing the number of seconds to cache CORS Preflight request.
+        # For example, "'600'" will cache request for 600 seconds. Checkout [HTTP Spec](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age) for more details on this value
+        #MaxAge:
+
+        # Optional. Boolean indicating whether request is allowed to contain credentials.
+        # Header is omitted when false. Checkout [HTTP Spec](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials) for more details on this value.
+        #AllowCredentials:
       DefinitionBody:
         swagger: '2.0'
         info:
@@ -40,21 +61,44 @@ Resources:
               responses:
                 '200':
                   description: 200 response
+                  headers:
+                    X-Content-Type-Options: { type: string }
+                    Access-Control-Allow-Origin: { type: string }
               x-amazon-apigateway-integration:
                 credentials: arn:aws:iam::170417557564:role/APIGatewayS3Access
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:amiga-freeware-archive-metadata-live-170417557564-us-east-2.s3:path/libraries/{library}/disks/{disk}.json
                 responses:
-                  default:
-                    statusCode: '200'
+                  "default":
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.X-Content-Type-Options: "'nosniff'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
                 requestParameters:
                   integration.request.path.disk: method.request.path.disk
                   integration.request.path.library: method.request.path.library
                 passthroughBehavior: when_no_match
                 httpMethod: GET
                 type: aws
-          "/sample":
+          "/search":
             get:
-              responses: {}
+              produces:
+                - application/json
+              parameters:
+                - name: q
+                  in: query
+                  required: true
+                  type: string
+                - name: size
+                  in: query
+                  required: true
+                  type: integer
+                - name: from
+                  in: query
+                  required: true
+                  type: integer
+              responses:
+                '200':
+                  description: 200 response
               x-amazon-apigateway-integration:
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BackEndFunction.Arn}/invocations
                 passthroughBehavior: when_no_match
@@ -67,15 +111,18 @@ Resources:
       CodeUri: backend-app/
       Handler: service.handler
       Runtime: python3.7
+      Policies:
+          - arn:aws:iam::170417557564:policy/amiga-freeware-archive/AmigaFreewareArchive-DatastoreManager-live-170417557564-us-east-2
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
-          PARAM1: VALUE
+          ESHOST: search-amiga-freeware-archive-live-5hjyeipqtlo6tuipwntdwizt4u.us-east-2.es.amazonaws.com
+          REGION: us-east-2
       Events:
         Sample:
           Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
           Properties:
             RestApiId: !Ref APIGateway
-            Path: /sample
+            Path: /search
             Method: get
 
 Outputs:

@@ -9,6 +9,10 @@ pytest = "*"
 pylint = "*"
 
 [packages]
+boto3 = "*"
+elasticsearch = "<7.0.0,>=6.0.0"
+requests = "*"
+requests-aws4auth = "*"
 
 [requires]
 python_version = "3.7"
