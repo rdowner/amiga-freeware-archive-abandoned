@@ -28,6 +28,11 @@ Parameters:
     Default: live
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
+  RequireApproval:
+    Description: Require review and approval step, after build and before deployment
+    Type: String
+    Default: true
+    AllowedValues: [ true, false ]
   WebsiteHostName:
     Type: String
     Description: DNS name of the website
@@ -58,6 +63,9 @@ Parameters:
     Type: String
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
+
+Conditions:
+  RequireApproval: !Equals [ !Ref RequireApproval, 'true' ]
 
 Resources:
 
@@ -537,18 +545,21 @@ Resources:
               Configuration:
                 ProjectName: !Ref WebAppCodeBuild
               RunOrder: 1
-        - Name: Review
-          Actions:
-            - Name: ApproveDeployment
-              InputArtifacts: []
-              OutputArtifacts: []
-              ActionTypeId:
-                Owner: AWS
-                Category: Approval
-                Provider: Manual
-                Version: 1
-              Configuration: {}
-              RunOrder: 1
+        - !If
+          - RequireApproval
+          - Name: Review
+            Actions:
+              - Name: ApproveDeployment
+                InputArtifacts: []
+                OutputArtifacts: []
+                ActionTypeId:
+                  Owner: AWS
+                  Category: Approval
+                  Provider: Manual
+                  Version: 1
+                Configuration: {}
+                RunOrder: 1
+          - !Ref AWS::NoValue
         - Name: Deploy
           Actions:
             - Name: DeployChangeSet
