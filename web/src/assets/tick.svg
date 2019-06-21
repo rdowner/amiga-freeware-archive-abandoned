@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 13.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 14948)  -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   width="123"
+   height="123"
+   viewBox="0.000244 0 123 123"
+   enable-background="new 0.000244 0 444 123"
+   xml:space="preserve"
+   sodipodi:docname="tick.svg"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"><metadata
+   id="metadata6362"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+   id="defs6360" /><sodipodi:namedview
+   pagecolor="#ffffff"
+   bordercolor="#666666"
+   borderopacity="1"
+   objecttolerance="10"
+   gridtolerance="10"
+   guidetolerance="10"
+   inkscape:pageopacity="0"
+   inkscape:pageshadow="2"
+   inkscape:window-width="3840"
+   inkscape:window-height="2019"
+   id="namedview6358"
+   showgrid="false"
+   inkscape:zoom="7.2477477"
+   inkscape:cx="102.09677"
+   inkscape:cy="89.094779"
+   inkscape:window-x="-14"
+   inkscape:window-y="-14"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="Layer_1" />
+
+<g
+   id="Tick"
+   transform="matrix(0.87122253,0,0,0.87122253,-4.6450832,11.676016)">
+	<line
+   x1="197.8772"
+   y1="-62.543945"
+   x2="209.16724"
+   y2="-30.833008"
+   id="line6264"
+   style="fill:none" />
+	<line
+   x1="210.54614"
+   y1="120.19336"
+   x2="143.39966"
+   y2="173.16699"
+   id="line6266"
+   style="fill:none" />
+	<g
+   id="g6310">
+		
+			<linearGradient
+   id="SVGID_99_"
+   gradientUnits="userSpaceOnUse"
+   x1="46.454346"
+   y1="-11.449219"
+   x2="46.454342"
+   y2="39.551758"
+   gradientTransform="matrix(1,0,0,-1,8.399902,97.009766)">
+			<stop
+   offset="0.0604"
+   style="stop-color:#53B848"
+   id="stop6268" />
+			<stop
+   offset="0.5549"
+   style="stop-color:#65CCEC"
+   id="stop6270" />
+			<stop
+   offset="0.5832"
+   style="stop-color:#61C3E7"
+   id="stop6272" />
+			<stop
+   offset="0.6882"
+   style="stop-color:#55A7D8"
+   id="stop6274" />
+			<stop
+   offset="0.7933"
+   style="stop-color:#4D92CD"
+   id="stop6276" />
+			<stop
+   offset="0.8976"
+   style="stop-color:#4886C6"
+   id="stop6278" />
+			<stop
+   offset="1"
+   style="stop-color:#4682C4"
+   id="stop6280" />
+		</linearGradient>
+		<polygon
+   points="28.687744,57.458008 46.85376,57.458008 81.020752,108.45898 63.020752,108.45898 "
+   id="polygon6283"
+   style="fill:url(#SVGID_99_);stroke:#000000;stroke-width:0.25" />
+		
+			<linearGradient
+   id="SVGID_100_"
+   gradientUnits="userSpaceOnUse"
+   x1="55.585205"
+   y1="-11.400879"
+   x2="136.54318"
+   y2="85.08107"
+   gradientTransform="matrix(1,0,0,-1,8.399902,97.009766)">
+			<stop
+   offset="0"
+   style="stop-color:#6EBE44"
+   id="stop6285" />
+			<stop
+   offset="0.0011"
+   style="stop-color:#6EBE44"
+   id="stop6287" />
+			<stop
+   offset="0.2454"
+   style="stop-color:#BCDA20"
+   id="stop6289" />
+			<stop
+   offset="0.4194"
+   style="stop-color:#ECEB09"
+   id="stop6291" />
+			<stop
+   offset="0.5055"
+   style="stop-color:#FFF200"
+   id="stop6293" />
+			<stop
+   offset="0.5783"
+   style="stop-color:#FBCA08"
+   id="stop6295" />
+			<stop
+   offset="0.6794"
+   style="stop-color:#F79A11"
+   id="stop6297" />
+			<stop
+   offset="0.7753"
+   style="stop-color:#F47419"
+   id="stop6299" />
+			<stop
+   offset="0.8635"
+   style="stop-color:#F1581F"
+   id="stop6301" />
+			<stop
+   offset="0.9411"
+   style="stop-color:#F04822"
+   id="stop6303" />
+			<stop
+   offset="1"
+   style="stop-color:#EF4223"
+   id="stop6305" />
+		</linearGradient>
+		<polygon
+   points="127.37524,12.291992 145.37524,12.291992 81.208252,108.45898 64.042236,108.45898 "
+   id="polygon6308"
+   style="fill:url(#SVGID_100_);stroke:#000000;stroke-width:0.25" />
+	</g>
+	<g
+   id="g6354">
+		
+			<linearGradient
+   id="SVGID_101_"
+   gradientUnits="userSpaceOnUse"
+   x1="24.787842"
+   y1="-11.448242"
+   x2="24.78784"
+   y2="39.551758"
+   gradientTransform="matrix(1,0,0,-1,8.399902,97.009766)">
+			<stop
+   offset="0.0604"
+   style="stop-color:#53B848"
+   id="stop6312" />
+			<stop
+   offset="0.5549"
+   style="stop-color:#65CCEC"
+   id="stop6314" />
+			<stop
+   offset="0.5832"
+   style="stop-color:#61C3E7"
+   id="stop6316" />
+			<stop
+   offset="0.6882"
+   style="stop-color:#55A7D8"
+   id="stop6318" />
+			<stop
+   offset="0.7933"
+   style="stop-color:#4D92CD"
+   id="stop6320" />
+			<stop
+   offset="0.8976"
+   style="stop-color:#4886C6"
+   id="stop6322" />
+			<stop
+   offset="1"
+   style="stop-color:#4682C4"
+   id="stop6324" />
+		</linearGradient>
+		<polygon
+   points="7.020752,57.458008 25.187744,57.458008 59.354736,108.45801 41.354736,108.45801 "
+   id="polygon6327"
+   style="fill:url(#SVGID_101_);stroke:#000000;stroke-width:0.25" />
+		
+			<linearGradient
+   id="SVGID_102_"
+   gradientUnits="userSpaceOnUse"
+   x1="33.918701"
+   y1="-11.400391"
+   x2="114.87601"
+   y2="85.080841"
+   gradientTransform="matrix(1,0,0,-1,8.399902,97.009766)">
+			<stop
+   offset="0"
+   style="stop-color:#6EBE44"
+   id="stop6329" />
+			<stop
+   offset="0.0011"
+   style="stop-color:#6EBE44"
+   id="stop6331" />
+			<stop
+   offset="0.2454"
+   style="stop-color:#BCDA20"
+   id="stop6333" />
+			<stop
+   offset="0.4194"
+   style="stop-color:#ECEB09"
+   id="stop6335" />
+			<stop
+   offset="0.5055"
+   style="stop-color:#FFF200"
+   id="stop6337" />
+			<stop
+   offset="0.5783"
+   style="stop-color:#FBCA08"
+   id="stop6339" />
+			<stop
+   offset="0.6794"
+   style="stop-color:#F79A11"
+   id="stop6341" />
+			<stop
+   offset="0.7753"
+   style="stop-color:#F47419"
+   id="stop6343" />
+			<stop
+   offset="0.8635"
+   style="stop-color:#F1581F"
+   id="stop6345" />
+			<stop
+   offset="0.9411"
+   style="stop-color:#F04822"
+   id="stop6347" />
+			<stop
+   offset="1"
+   style="stop-color:#EF4223"
+   id="stop6349" />
+		</linearGradient>
+		<polygon
+   points="105.70825,12.291016 123.70825,12.291016 59.542236,108.45801 42.375244,108.45801 "
+   id="polygon6352"
+   style="fill:url(#SVGID_102_);stroke:#000000;stroke-width:0.25" />
+	</g>
+</g>
+</svg>
