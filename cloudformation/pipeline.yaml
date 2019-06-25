@@ -53,9 +53,25 @@ Parameters:
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
   S3KMSKeyArn:
-    Description: ARN of the KMS key that is used to encrypt objects in the S3 buckets
+    Description: ARN of the KMS key that is used to encrypt objects in the S3 buckets in this region
     Type: String
     Default: arn:aws:kms:${AWS::Region}:ACCOUNT:alias/aws/s3
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  S3KMSKeyArnUSEast1:
+    Description: ARN of the KMS key that is used to encrypt objects in the S3 buckets in us-east-1
+    Type: String
+    Default: arn:aws:kms:${AWS::Region}:ACCOUNT:alias/aws/s3
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  PipelineS3BucketUSEast1:
+    Description: Name of the S3 bucket for pipeline artifacts in us-east-1
+    Type: String
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  SamBucketForLambdaAtEdge:
+    Description: Name of the S3 bucket for Lambda@Edge artifacts in us-east-1
+    Type: String
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
   AcmCertificateArn:
@@ -114,39 +130,6 @@ Resources:
           Resource: !Sub "arn:aws:s3:::${WebAppBucket}/*"
           Principal:
             AWS: !Sub "arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudFrontOriginAccessIdentity}"
-
-  CloudFrontDistribution:
-    Type: AWS::CloudFront::Distribution
-    Properties:
-      Tags:
-      - { Key: CostAllocationGroup, Value: !Ref CostAllocationGroup }
-      - { Key: CostAllocationAspect, Value: !Ref Stage }
-      DistributionConfig:
-        Comment: !Sub "${WebsiteHostName} in S3 bucket ${WebAppBucket}"
-        Aliases: [ !Ref WebsiteHostName ]
-        DefaultCacheBehavior:
-          Compress: true
-          DefaultTTL: 604800  # CloudFront caches items for 7 days unless HTTP headers in the response say otherwise
-          ForwardedValues:
-            Cookies:
-              Forward: none
-            Headers: [ ]
-            QueryString: false
-          TargetOriginId: MainOrigin
-          ViewerProtocolPolicy: redirect-to-https
-        Enabled: true
-        HttpVersion: http2
-        IPV6Enabled: true
-        # Logging: FIXME: do this later
-        Origins:
-        - Id: MainOrigin
-          DomainName: !Sub "${WebAppBucket}.s3.amazonaws.com"
-          S3OriginConfig:
-            OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
-        ViewerCertificate:
-          AcmCertificateArn: !Ref AcmCertificateArn
-          MinimumProtocolVersion: TLSv1.1_2016
-          SslSupportMethod: sni-only
 
   # STAGE: BUILD
 
@@ -223,6 +206,31 @@ Resources:
         ArtifactIdentifier: CloudFormation
         Type: CODEPIPELINE
 
+  CloudFrontCodeBuild:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Cache:
+        Type: NO_CACHE
+      EncryptionKey: !Ref S3KMSKeyArn
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        EnvironmentVariables:
+          - Name: S3_BUCKET
+            Type: PLAINTEXT
+            Value: !Ref SamBucketForLambdaAtEdge
+          - Name: S3_BUCKET_KMS_KEY
+            Type: PLAINTEXT
+            Value: !Ref S3KMSKeyArnUSEast1
+        Type: LINUX_CONTAINER
+        Image: aws/codebuild/standard:2.0
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: cloudfront/buildspec.yml
+      Artifacts:
+        ArtifactIdentifier: CloudFormation
+        Type: CODEPIPELINE
+
   WebAppCodeBuild:
     Type: AWS::CodeBuild::Project
     Properties:
@@ -268,7 +276,9 @@ Resources:
           Resource: arn:aws:s3:::codepipeline*
           Effect: Allow
         - Action: lambda:*
-          Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*
+          Resource:
+            - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*
+            - !Sub arn:aws:lambda:us-east-1:${AWS::AccountId}:function:*
           Effect: Allow
         - Action: apigateway:*
           Resource: !Sub arn:aws:apigateway:${AWS::Region}::*
@@ -290,7 +300,9 @@ Resources:
           Resource: "*"
           Effect: Allow
         - Action: cloudformation:CreateChangeSet
-          Resource: !Sub arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31
+          Resource:
+            - !Sub arn:aws:cloudformation:${AWS::Region}:aws:transform/Serverless-2016-10-31
+            - arn:aws:cloudformation:us-east-1:aws:transform/Serverless-2016-10-31
           Effect: Allow
         - Action:
           - codedeploy:CreateApplication
@@ -307,6 +319,12 @@ Resources:
         - Action: codedeploy:GetDeploymentConfig
           Resource: !Sub arn:aws:codedeploy:${AWS::Region}:${AWS::AccountId}:deploymentconfig:*
           Effect: Allow
+        - Action: iam:CreateServiceLinkedRole
+          Resource: arn:aws:iam::*:role/aws-service-role/*.amazonaws.com/*
+          Condition:
+            StringLike:
+              iam:AWSServiceName: '*.amazonaws.com'
+          Effect: Allow
 
   CloudFormationRole:
     Type: AWS::IAM::Role
@@ -314,6 +332,7 @@ Resources:
       Path: /amiga-freeware-archive/
       ManagedPolicyArns:
         - !Ref PolicyForCloudFormationRole
+        - arn:aws:iam::aws:policy/CloudFrontFullAccess
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -473,15 +492,24 @@ Resources:
               SSEAlgorithm: 'aws:kms'
               KMSMasterKeyID: !Ref S3KMSKeyArn
 
-  Pipeline: 
+  Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      ArtifactStore:
-        Type: S3
-        Location: !Ref PipelineS3Bucket
-        EncryptionKey:
-          Type: KMS
-          Id: !Ref S3KMSKeyArn
+      ArtifactStores:
+        - Region: !Ref AWS::Region
+          ArtifactStore:
+            Type: S3
+            Location: !Ref PipelineS3Bucket
+            EncryptionKey:
+              Type: KMS
+              Id: !Ref S3KMSKeyArn
+        - Region: us-east-1
+          ArtifactStore:
+            Type: S3
+            Location: !Ref PipelineS3BucketUSEast1
+            EncryptionKey:
+              Type: KMS
+              Id: !Ref S3KMSKeyArnUSEast1
       RoleArn: !GetAtt CodePipelineRole.Arn
       Stages:
         - Name: Source
@@ -515,7 +543,7 @@ Resources:
               Configuration:
                 ProjectName: !Ref CloudFormationCodeBuild
               RunOrder: 1
-            - Name: MakeChangeSet
+            - Name: MakeBackendChangeSet
               InputArtifacts:
                 - Name: CloudFormationArtifact
               OutputArtifacts: []
@@ -531,6 +559,47 @@ Resources:
                 ChangeSetName: AFASAMCS
                 TemplatePath: CloudFormationArtifact::backend-app/packaged.yaml
                 RoleArn: !GetAtt CloudFormationRole.Arn
+              RunOrder: 2
+            - Name: BuildCloudFrontAction
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: CloudFrontArtifact
+              ActionTypeId:
+                Owner: AWS
+                Category: Build
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref CloudFrontCodeBuild
+              RunOrder: 1
+            - Name: MakeCloudFrontChangeSet
+              InputArtifacts:
+                - Name: CloudFrontArtifact
+              OutputArtifacts: []
+              ActionTypeId:
+                Owner: AWS
+                Category: Deploy
+                Provider: CloudFormation
+                Version: 1
+              Region: us-east-1
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                StackName: AFACloudFront
+                Capabilities: CAPABILITY_IAM
+                ChangeSetName: AFACloudFrontCS
+                TemplatePath: CloudFrontArtifact::cloudfront/packaged.yaml
+                RoleArn: !GetAtt CloudFormationRole.Arn
+                ParameterOverrides:
+                  Fn::Sub: |
+                    {
+                      "CostAllocationGroup": "${CostAllocationGroup}",
+                      "Stage": "${Stage}",
+                      "WebAppBucket": "${WebAppBucket}",
+                      "WebsiteHostName": "${WebsiteHostName}",
+                      "CloudFrontOriginAccessIdentity": "${CloudFrontOriginAccessIdentity}",
+                      "AcmCertificateArn": "${AcmCertificateArn}"
+                    }
               RunOrder: 2
             - Name: BuildWebAppAction
               InputArtifacts:
@@ -562,7 +631,7 @@ Resources:
           - !Ref AWS::NoValue
         - Name: Deploy
           Actions:
-            - Name: DeployChangeSet
+            - Name: DeployBackendChangeSet
               InputArtifacts: []
               OutputArtifacts: []
               ActionTypeId:
@@ -575,6 +644,23 @@ Resources:
                 StackName: AFASAM
                 Capabilities: CAPABILITY_IAM
                 ChangeSetName: AFASAMCS
+                TemplatePath: CloudFormationArtifact::backend-app/packaged.yaml
+                RoleArn: !GetAtt CloudFormationRole.Arn
+              RunOrder: 1
+            - Name: DeployCloudFormationChangeSet
+              InputArtifacts: []
+              OutputArtifacts: []
+              ActionTypeId:
+                Owner: AWS
+                Category: Deploy
+                Provider: CloudFormation
+                Version: 1
+              Region: us-east-1
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                StackName: AFACloudFront
+                Capabilities: CAPABILITY_IAM
+                ChangeSetName: AFACloudFrontCS
                 TemplatePath: CloudFormationArtifact::backend-app/packaged.yaml
                 RoleArn: !GetAtt CloudFormationRole.Arn
               RunOrder: 1
@@ -605,11 +691,3 @@ Resources:
       Name: AFAGitHubWebhook
       TargetPipelineVersion: !GetAtt Pipeline.Version
       RegisterWithThirdParty: 'true'
-
-Outputs:
-  CloudFrontDistributionId:
-    Value: !Ref CloudFrontDistribution
-  CloudFrontURL:
-    Value: !GetAtt CloudFrontDistribution.DomainName
-  CloudFrontHostedZone:
-    Value: "Z2FDTNDATAQYW2"

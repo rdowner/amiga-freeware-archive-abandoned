@@ -1,0 +1,36 @@
+# Copyright 2019 Richard Downer
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# CodeBuild spec for the AWS SAM backend (and maybe other artifacts in the future)
+
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.7
+    commands:
+      - pip install aws-sam-cli
+  build:
+    commands:
+      - cd cloudfront
+      - sam build
+  post_build:
+    commands:
+      - sam package --template-file .aws-sam/build/template.yaml --output-template-file packaged.yaml --kms-key-id ${S3_BUCKET_KMS_KEY} --s3-bucket ${S3_BUCKET} 
+
+artifacts:
+  type: zip
+  files:
+    - cloudfront/template.yaml
+    - cloudfront/packaged.yaml

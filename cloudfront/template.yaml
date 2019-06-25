@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    sam-app
+
+    Sample SAM Template for sam-app
+    
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+    Function:
+        Timeout: 3
+
+Parameters:
+  CostAllocationGroup:
+    Description: Tag for allocating resources to cost groups
+    Type: String
+    Default: AmigaFreewareArchive
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  Stage:
+    Description: Name of the stage, such as "live" or "dev"
+    Type: String
+    Default: live
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+  WebAppBucket:
+    Type: String
+    Description: Name of the S3 bucket origin containing the web application
+  WebsiteHostName:
+    Type: String
+    Description: DNS name of the website
+  CloudFrontOriginAccessIdentity:
+    Type: String
+    Description: Origin Access ID of the CloudFront Origin Access Identity that should be used to access the S3 bucket
+  AcmCertificateArn:
+    Description: ARN of the ACM certificate that is used for TLS encryption on the web app distribution
+    Type: String
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+
+Resources:
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      Tags:
+        - { Key: CostAllocationGroup, Value: !Ref CostAllocationGroup }
+        - { Key: CostAllocationAspect, Value: !Ref Stage }
+      DistributionConfig:
+        Comment: !Sub "${WebsiteHostName} from S3 bucket"
+        Aliases: [ !Ref WebsiteHostName ]
+        DefaultCacheBehavior:
+          Compress: true
+          DefaultTTL: 604800  # CloudFront caches items for 7 days unless HTTP headers in the response say otherwise
+          ForwardedValues:
+            Cookies:
+              Forward: none
+            Headers: [ ]
+            QueryString: false
+          TargetOriginId: MainOrigin
+          ViewerProtocolPolicy: redirect-to-https
+        Enabled: true
+        HttpVersion: http2
+        IPV6Enabled: true
+        # Logging: FIXME: do this later
+        Origins:
+          - Id: MainOrigin
+            DomainName: !Sub "${WebAppBucket}.s3.amazonaws.com"
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOriginAccessIdentity}"
+        ViewerCertificate:
+          AcmCertificateArn: !Ref AcmCertificateArn
+          MinimumProtocolVersion: TLSv1.1_2016
+          SslSupportMethod: sni-only
+
+Outputs:
+  CloudFrontDistributionId:
+    Value: !Ref CloudFrontDistribution
+  CloudFrontURL:
+    Value: !GetAtt CloudFrontDistribution.DomainName
+  CloudFrontHostedZone:
+    Value: "Z2FDTNDATAQYW2"
