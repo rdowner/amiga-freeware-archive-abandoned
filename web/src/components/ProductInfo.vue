@@ -9,6 +9,8 @@
                     <dd>{{ v }}</dd>
                 </dl>
             </b-card-text>
+
+            <b-button v-bind:href="downloadLink" variant="primary">Download</b-button>
         </b-card>
     </div>
 </template>
@@ -45,7 +47,8 @@
                     || key === "author"
                     || key === "described-by"
                     ;}),
-                title: (this.product.fullname ? this.product.fullname : this.product.name) + (this.product.version ? ' ' + this.product.version : '')
+                title: (this.product.fullname ? this.product.fullname : this.product.name) + (this.product.version ? ' ' + this.product.version : ''),
+                downloadLink: "/" + this.product.artifact_id
             };
         },
     }

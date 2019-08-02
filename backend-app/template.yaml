@@ -79,6 +79,45 @@ Resources:
                 passthroughBehavior: when_no_match
                 httpMethod: GET
                 type: aws
+          "/libraries/{library}/disks/{disk}/artifacts/{artifact}":
+            get:
+              produces:
+                - application/binary
+              parameters:
+                - name: disk
+                  in: path
+                  required: true
+                  type: string
+                - name: library
+                  in: path
+                  required: true
+                  type: string
+                - name: artifact
+                  in: path
+                  required: true
+                  type: string
+              responses:
+                '200':
+                  description: 200 response
+                  headers:
+                    X-Content-Type-Options: { type: string }
+                    Access-Control-Allow-Origin: { type: string }
+              x-amazon-apigateway-integration:
+                credentials: arn:aws:iam::170417557564:role/APIGatewayS3Access
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:amiga-freeware-archive-metadata-live-170417557564-us-east-2.s3:path/libraries/{library}/disks/{disk}/artifacts/{artifact}
+                responses:
+                  "default":
+                    statusCode: "200"
+                    responseParameters:
+                      method.response.header.X-Content-Type-Options: "'nosniff'"
+                      method.response.header.Access-Control-Allow-Origin: "'*'"
+                requestParameters:
+                  integration.request.path.disk: method.request.path.disk
+                  integration.request.path.library: method.request.path.library
+                  integration.request.path.artifact: method.request.path.artifact
+                passthroughBehavior: when_no_match
+                httpMethod: GET
+                type: aws
           "/search":
             get:
               produces:
