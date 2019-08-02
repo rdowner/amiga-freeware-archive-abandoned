@@ -74,6 +74,7 @@
             this.search();
         },
         watch: {
+            // eslint-disable-next-line
             '$route.query.page': function (page) {
                 this.search();
             }
