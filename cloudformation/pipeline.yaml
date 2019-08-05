@@ -13,9 +13,41 @@
 # limitations under the License.
 
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Core IAM resources for the Amiga Freeware Archive
+Description: CI/CD pipeline and core storage and IAM resources for the Amiga Freeware Archive
+
+Metadata:
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label:
+          default: 'Policy'
+        Parameters:
+          - CostAllocationGroup
+          - Stage
+          - RequireApproval
+      - Label:
+          default: 'Public website'
+        Parameters:
+          - WebsiteHostName
+          - AcmCertificateArn
+      - Label:
+          default: 'Source control integration'
+        Parameters:
+          - GitHubRepoOwner
+          - GitHubRepoName
+          - GitHubToken
+      - Label:
+          default: 'Storage in this region'
+        Parameters:
+          - S3KMSKeyArn
+      - Label:
+          default: 'Storage in us-east-1'
+        Parameters:
+          - S3KMSKeyArnUSEast1
+          - PipelineS3BucketUSEast1
+          - SamBucketForLambdaAtEdge
 
 Parameters:
+  # Policy
   CostAllocationGroup:
     Description: Tag for allocating resources to cost groups
     Type: String
@@ -33,9 +65,18 @@ Parameters:
     Type: String
     Default: true
     AllowedValues: [ true, false ]
+
+  # Public website
   WebsiteHostName:
     Type: String
     Description: DNS name of the website
+  AcmCertificateArn:
+    Description: ARN of the ACM certificate that is used for TLS encryption on the web app distribution
+    Type: String
+    AllowedPattern: '.+'
+    ConstraintDescription: must not be empty
+
+  # Source control integration
   GitHubRepoOwner:
     Description: Owner name of the source code repository
     Type: String
@@ -52,12 +93,16 @@ Parameters:
     Type: String
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
+
+  # Storage in this region
   S3KMSKeyArn:
     Description: ARN of the KMS key that is used to encrypt objects in the S3 buckets in this region
     Type: String
     Default: arn:aws:kms:${AWS::Region}:ACCOUNT:alias/aws/s3
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
+
+  # Storage in us-east-1
   S3KMSKeyArnUSEast1:
     Description: ARN of the KMS key that is used to encrypt objects in the S3 buckets in us-east-1
     Type: String
@@ -71,11 +116,6 @@ Parameters:
     ConstraintDescription: must not be empty
   SamBucketForLambdaAtEdge:
     Description: Name of the S3 bucket for Lambda@Edge artifacts in us-east-1
-    Type: String
-    AllowedPattern: '.+'
-    ConstraintDescription: must not be empty
-  AcmCertificateArn:
-    Description: ARN of the ACM certificate that is used for TLS encryption on the web app distribution
     Type: String
     AllowedPattern: '.+'
     ConstraintDescription: must not be empty
@@ -241,12 +281,9 @@ Resources:
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
         EnvironmentVariables:
-        - Name: S3_BUCKET
+        - Name: VUE_APP_ROOT_API
           Type: PLAINTEXT
-          Value: !Ref SamBucket
-        - Name: S3_BUCKET_KMS_KEY
-          Type: PLAINTEXT
-          Value: !Ref S3KMSKeyArn
+          Value: https://w1rz82fujb.execute-api.us-east-2.amazonaws.com/prod
         Type: LINUX_CONTAINER
         Image: aws/codebuild/standard:2.0
       Source:
@@ -528,7 +565,7 @@ Resources:
                 Branch: master
                 OAuthToken: !Ref GitHubToken
               RunOrder: 1
-        - Name: Build
+        - Name: BuildSAMApps
           Actions:
             - Name: BuildCloudFormationAction
               InputArtifacts:
@@ -601,22 +638,9 @@ Resources:
                       "AcmCertificateArn": "${AcmCertificateArn}"
                     }
               RunOrder: 2
-            - Name: BuildWebAppAction
-              InputArtifacts:
-              - Name: SourceArtifact
-              OutputArtifacts:
-              - Name: WebAppArtifact
-              ActionTypeId:
-                Owner: AWS
-                Category: Build
-                Provider: CodeBuild
-                Version: 1
-              Configuration:
-                ProjectName: !Ref WebAppCodeBuild
-              RunOrder: 1
         - !If
           - RequireApproval
-          - Name: Review
+          - Name: ReviewSAMApps
             Actions:
               - Name: ApproveDeployment
                 InputArtifacts: []
@@ -629,11 +653,12 @@ Resources:
                 Configuration: {}
                 RunOrder: 1
           - !Ref AWS::NoValue
-        - Name: Deploy
+        - Name: DeploySAMApps
           Actions:
             - Name: DeployBackendChangeSet
               InputArtifacts: []
-              OutputArtifacts: []
+              OutputArtifacts:
+                - Name: BackEndAppOutputs
               ActionTypeId:
                 Owner: AWS
                 Category: Deploy
@@ -646,6 +671,7 @@ Resources:
                 ChangeSetName: AFASAMCS
                 TemplatePath: CloudFormationArtifact::backend-app/packaged.yaml
                 RoleArn: !GetAtt CloudFormationRole.Arn
+                OutputFileName: BackEndAppOutputs.json
               RunOrder: 1
             - Name: DeployCloudFormationChangeSet
               InputArtifacts: []
@@ -664,6 +690,23 @@ Resources:
                 TemplatePath: CloudFormationArtifact::backend-app/packaged.yaml
                 RoleArn: !GetAtt CloudFormationRole.Arn
               RunOrder: 1
+        - Name: BuildAndDeployWebApp
+          Actions:
+            - Name: BuildWebAppAction
+              InputArtifacts:
+                - Name: SourceArtifact
+                - Name: BackEndAppOutputs
+              OutputArtifacts:
+                - Name: WebAppArtifact
+              ActionTypeId:
+                Owner: AWS
+                Category: Build
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref WebAppCodeBuild
+                PrimarySource: SourceArtifact
+              RunOrder: 1
             - Name: DeployWebApp
               InputArtifacts:
                 - Name: WebAppArtifact
@@ -676,6 +719,7 @@ Resources:
               Configuration:
                 BucketName: !Ref WebAppBucket
                 Extract: true
+              RunOrder: 2
 
   PipelineWebhook:
     Type: AWS::CodePipeline::Webhook

@@ -13,7 +13,7 @@ Vue.config.productionTip = false;
 Vue.use(VueRouter);
 Vue.use(BootstrapVue);
 
-axios.defaults.baseURL = 'https://w1rz82fujb.execute-api.us-east-2.amazonaws.com/prod';
+axios.defaults.baseURL = process.env.VUE_APP_ROOT_API;
 
 const routes = [
     { name: 'home', path: '/', component: HomePage },

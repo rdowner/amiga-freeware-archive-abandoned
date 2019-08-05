@@ -104,13 +104,15 @@ Resources:
                     Access-Control-Allow-Origin: { type: string }
               x-amazon-apigateway-integration:
                 credentials: arn:aws:iam::170417557564:role/APIGatewayS3Access
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:amiga-freeware-archive-metadata-live-170417557564-us-east-2.s3:path/libraries/{library}/disks/{disk}/artifacts/{artifact}
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:amiga-freeware-archive-artifacts-live-170417557564-us-east-2.s3:path/libraries/{library}/disks/{disk}/artifacts/{artifact}
                 responses:
                   "default":
                     statusCode: "200"
                     responseParameters:
                       method.response.header.X-Content-Type-Options: "'nosniff'"
                       method.response.header.Access-Control-Allow-Origin: "'*'"
+                  "404":
+                    statusCode: "404"
                 requestParameters:
                   integration.request.path.disk: method.request.path.disk
                   integration.request.path.library: method.request.path.library

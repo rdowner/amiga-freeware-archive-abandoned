@@ -11,6 +11,7 @@
 
             <div class="text-muted">Looking for anti-virus? Try searching for <strong><router-link :to="{name:'search',query:{q:'virus killer'}}">virus killer</router-link></strong></div>
             <div class="text-muted">What software do we have by Carolyn Scheppner? <strong><router-link :to="{name:'search',query:{q:'author:scheppner'}}">author:scheppner</router-link></strong></div>
+            <div class="text-muted">Need a better way to read text files? <strong><router-link :to="{name:'search',query:{q:'ppmore'}}">ppmore</router-link></strong></div>
 
         </b-jumbotron>
 

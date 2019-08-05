@@ -48,7 +48,7 @@
                     || key === "described-by"
                     ;}),
                 title: (this.product.fullname ? this.product.fullname : this.product.name) + (this.product.version ? ' ' + this.product.version : ''),
-                downloadLink: "/" + this.product.artifact_id
+                downloadLink: process.env.VUE_APP_ROOT_API + "/" + this.product.artifact_id
             };
         },
     }

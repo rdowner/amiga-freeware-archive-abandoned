@@ -22,6 +22,7 @@ phases:
   build:
     commands:
       - cd web
+      - jq -r '@text "VUE_APP_ROOT_API=\(.APIEndpoint)"' "${CODEBUILD_SRC_DIR_BackEndAppOutputs}/BackEndAppOutputs.json" > .env
       - npm install
       - npm run build
 
