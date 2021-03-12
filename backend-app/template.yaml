@@ -108,9 +108,6 @@ Resources:
                 responses:
                   "default":
                     statusCode: "200"
-                    responseParameters:
-                      method.response.header.X-Content-Type-Options: "'nosniff'"
-                      method.response.header.Access-Control-Allow-Origin: "'*'"
                   "404":
                     statusCode: "404"
                 requestParameters:
