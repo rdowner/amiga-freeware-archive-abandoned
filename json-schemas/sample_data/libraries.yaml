@@ -1,0 +1,21 @@
+- library_id: fish
+  title: Fred Fish Amiga Library Disks
+  description: |
+    Created by prominent Amiga community member Fred Fish, his "Amiga Library Disk" collection is generally known
+    eponymously as the "Fish disks". They are mostly compromised of applications and utilities, but the occasional game
+    has been known to feature. The Fish disks started early in the popular life of the Amiga, and were initially spread
+    by hand between local Amiga user groups.
+
+    This library contains the 1,000 Fish disks; at this point, CD-ROM drives were becoming popular so Fred continued
+    his series by CD-ROM. Those later CD-ROM collections I hope to add later as an additional library.
+- library_id: 17bit
+  title: 17 Bit Software
+  description: |
+    Probably the best known PD library - at least in the UK - was 17 Bit Software. Whereas the Fish disks are mostly
+    based around applications and utilities, in the 17 Bit library we find a large amount of games, demos, music and
+    art.
+- library_id: software2000
+  title: Software 2000
+  collections:
+    - collection_id: games
+      title: games

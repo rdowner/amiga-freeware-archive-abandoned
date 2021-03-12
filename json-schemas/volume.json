@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "id": "https://amigafreeware.frontier.town/schemas/volume.json",
+    "type": "object",
+    "required": [ "catalog_id", "parent", "title" ],
+    "properties": {
+        "volume_id": { "type": "string" },
+        "parent": { "type": "string" },
+        "volume_number": { "type": "number" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "editions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [ "edition_id", "primary", "artifacts" ],
+                "properties": {
+                    "edition_id": { "type": "string" },
+                    "primary": { "type": "boolean" },
+                    "name": { "type": "string" },
+                    "artifacts": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": [ "artifact_id" ],
+                            "properties": {
+                                "artifact_id": { "type": "string" },
+                                "filename": { "type": "string" },
+                                "content-type": { "type": "string" },
+                                "link": { "type": "string", "format": "uri" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

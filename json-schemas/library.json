@@ -1,0 +1,22 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "id": "https://amigafreeware.frontier.town/schemas/library.json",
+    "type": "object",
+    "required": [ "library_id", "title" ],
+    "properties": {
+        "library_id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "collections": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": [ "collection_id", "title" ],
+                "properties": {
+                    "collection_id": { "type": "string" },
+                    "title": { "type": "string" }
+                }
+            }
+        }
+    }
+}
